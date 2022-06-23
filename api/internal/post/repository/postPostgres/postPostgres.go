@@ -1,7 +1,6 @@
 package postPostgres
 
 import (
-	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mailcourses/technopark-dbms-forum/api/internal/domain"
 	"golang.org/x/net/context"
@@ -97,46 +96,32 @@ func (repo PostRepo) CreatePosts(posts []domain.Post, forum string, threadId int
 
 	result := make([]domain.Post, 0, elements)
 
-	insertToForumUsersQuery := `INSERT INTO ForumUsers (nickname, fullname, about, email, forum) values`
-	paramNumber := 1
-	forumUsersFields := 5
-	var forumUsersParams []interface{}
 	for i := 0; rows.Next(); i++ {
 		var post domain.Post
-
 		err = rows.Scan(domain.GetPostFields(&post)...)
+
+		result = append(result, post)
 
 		if err != nil {
 			return nil, err
 		}
 
 		currUser := domain.User{}
-		getUserQuery := `SELECT nickname, fullname, about, email from users where nickname = $1;`
-		if err := repo.pool.QueryRow(context.Background(), getUserQuery, strings.ToLower(post.Author)).Scan(domain.GetUserFields(&currUser)...); err != nil {
+		getUserQuery := `SELECT nickname, fullname, about, email from users where nickname = $1`
+		if err := repo.pool.QueryRow(context.Background(), getUserQuery, strings.ToLower(result[i].Author)).Scan(domain.GetUserFields(&currUser)...); err != nil {
 			return nil, err
 		}
 
-		if i > 0 {
-			insertToForumUsersQuery += ","
+		insertInForumUsersQuery := `INSERT INTO ForumUsers (nickname, fullname, about, email, forum) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING;`
+		if _, err := repo.pool.Exec(context.Background(), insertInForumUsersQuery, currUser.Nickname, currUser.Fullname, currUser.About, currUser.Email, result[i].Forum); err != nil {
+			return nil, err
 		}
-
-		result = append(result, post)
-
-		insertToForumUsersQuery += fmt.Sprintf(" ($%d, $%d, $%d, $%d, $%d)", paramNumber, paramNumber+1, paramNumber+2, paramNumber+3, paramNumber+4)
-		forumUsersParams = append(forumUsersParams, currUser.Nickname, currUser.Fullname, currUser.About, currUser.Email, forum)
-		paramNumber += forumUsersFields
 	}
-
-	insertToForumUsersQuery += " ON CONFLICT DO NOTHING;"
 
 	if len(result) > 0 {
 		forumToIncPosts := result[0].Forum
 		updForumPostsThreads := `UPDATE forum set posts = posts + $1 where forum.slug = $2;`
 		if _, err := repo.pool.Exec(context.Background(), updForumPostsThreads, elements, strings.ToLower(forumToIncPosts)); err != nil {
-			return nil, err
-		}
-
-		if _, err := repo.pool.Exec(context.Background(), insertToForumUsersQuery, forumUsersParams...); err != nil {
 			return nil, err
 		}
 	}

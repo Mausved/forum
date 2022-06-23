@@ -14,10 +14,9 @@ CREATE UNLOGGED TABLE Forum
     id            serial             NOT NULL,
     title         varchar(255)       NOT NULL,
     user_nickname citext COLLATE "C" NOT NULL REFERENCES Users (nickname) ON DELETE CASCADE,
-    slug          citext             NOT NULL UNIQUE,
+    slug          citext             NOT NULL UNIQUE PRIMARY KEY,
     posts         int                NOT NULL default 0,
-    threads       int                NOT NULL default 0,
-    CONSTRAINT ForumPk PRIMARY KEY (id)
+    threads       int                NOT NULL default 0
 );
 
 CREATE UNLOGGED TABLE ForumUsers
@@ -26,27 +25,25 @@ CREATE UNLOGGED TABLE ForumUsers
     fullname varchar(255)       NOT NULL,
     about    text               NOT NULL,
     email    citext             NOT NULL REFERENCES Users (email) ON DELETE CASCADE,
-    forum    citext             NOT NULL REFERENCES Forum (slug) ON DELETE CASCADE
+    forum    citext             NOT NULL REFERENCES Forum (slug) ON DELETE CASCADE,
+    PRIMARY KEY (nickname, forum)
 );
-
-SHOW config_file;
 
 CREATE UNLOGGED TABLE Thread
 (
-    id            serial             NOT NULL,
+    id            serial             NOT NULL PRIMARY KEY,
     title         varchar(255)       NOT NULL,
     user_nickname citext COLLATE "C" NOT NULL REFERENCES Users (nickname) ON DELETE CASCADE,
     forum         citext             NOT NULL REFERENCES Forum (slug) ON DELETE CASCADE,
     message       text               NOT NULL,
     votes         int         default 0,
     slug          citext             NOT NULL,
-    created       timestamptz DEFAULT now(),
-    CONSTRAINT ThreadPk PRIMARY KEY (id)
+    created       timestamptz DEFAULT now()
 );
 
 CREATE UNLOGGED TABLE Post
 (
-    id        serial             NOT NULL,
+    id        serial             NOT NULL PRIMARY KEY,
     parent    int                NOT NULL default 0,
     author    citext COLLATE "C" NOT NULL REFERENCES Users (nickname) ON DELETE CASCADE,
     message   text               NOT NULL,
@@ -54,50 +51,35 @@ CREATE UNLOGGED TABLE Post
     forum     citext             NOT NULL REFERENCES Forum (slug) ON DELETE CASCADE,
     thread    int                NOT NULL,
     created   timestamptz                 DEFAULT now(),
-    pathTree  int[]                    default array []::int[],
-    CONSTRAINT PostPk PRIMARY KEY (id)
+    pathTree  int[]                       default array []::int[]
 );
 
 CREATE UNLOGGED TABLE Vote
 (
     threadId int                NOT NULL REFERENCES Thread (id) ON DELETE CASCADE,
     nickname citext COLLATE "C" NOT NULL REFERENCES Users (nickname) ON DELETE CASCADE,
-    voice    int                NOT NULL default 0
+    voice    int                NOT NULL default 0,
+    PRIMARY KEY (threadId, nickname)
 );
 
 -- Users
-CREATE INDEX IF NOT EXISTS index_emails_users ON Users USING hash (email);
-CREATE INDEX IF NOT EXISTS index_nicknames_hash_users ON Users USING hash (nickname);
-CREATE INDEX IF NOT EXISTS index_nicknames_btree_users ON Users USING btree (nickname);
-CREATE UNIQUE INDEX IF NOT EXISTS index_lowercase_emails on Users (lower(email));
-CREATE UNIQUE INDEX IF NOT EXISTS index_lowercase_nicknames on Users (lower(nickname));
-CREATE UNIQUE INDEX IF NOT EXISTS index_unique_users on Users (email, nickname);
-
--- Forum
-CREATE INDEX IF NOT EXISTS index_user_forum on Forum using hash (user_nickname);
-CREATE INDEX IF NOT EXISTS index_slug_forum on Forum using hash (slug);
-CREATE UNIQUE INDEX IF NOT EXISTS index_lowercase_slug_forum on Forum (lower(slug));
-
--- ForumUsers
-CREATE UNIQUE INDEX IF NOT EXISTS index_uniq_user on ForumUsers (lower(email), lower(nickname), about, lower(forum), fullname);
-
+CREATE INDEX IF NOT EXISTS  user_nickname_email ON Users (nickname, email);
 
 -- Threads
 CREATE INDEX IF NOT EXISTS index_forum_thread on Thread using hash (forum);
 CREATE INDEX IF NOT EXISTS index_slug_thread on Thread using hash (slug);
-CREATE INDEX IF NOT EXISTS index_user_thread on Thread using hash (user_nickname);
+CREATE INDEX IF NOT EXISTS for_search_threads_on_forum ON Thread (forum, created);
 
 -- Post
-CREATE INDEX IF NOT EXISTS index_author_post on Post using hash (author);
-CREATE INDEX IF NOT EXISTS index_forum_post on Post using hash (forum);
-CREATE INDEX IF NOT EXISTS index_parent_post on Post using btree (parent);
-CREATE INDEX IF NOT EXISTS thread_parentTree_post on post (thread, pathtree);
-CREATE INDEX IF NOT EXISTS first_parent_post on post ((pathtree[1]), pathtree);
+CREATE INDEX IF NOT EXISTS for_search_users_on_forum_posts ON Post (forum, author);
+CREATE INDEX IF NOT EXISTS for_flat_search ON Post (thread, id);
+CREATE INDEX IF NOT EXISTS for_tree_search ON Post (thread, pathTree);
+CREATE INDEX IF NOT EXISTS for_parent_tree_search ON Post ((pathTree[1]), pathTree);
+CREATE INDEX IF NOT EXISTS post_id_hash ON Post using hash (id);
+CREATE INDEX IF NOT EXISTS post_thread_hash ON Post using hash (thread);
 
 -- Vote
-CREATE INDEX IF NOT EXISTS index_nickname_vote on Vote using hash (nickname);
-CREATE INDEX IF NOT EXISTS index_threadId_vote on Vote using hash (threadid);
-CREATE UNIQUE INDEX IF NOT EXISTS index_unique_vote on Vote (threadId, nickname);
+CREATE INDEX IF NOT EXISTS search_user_vote ON Vote (nickname, threadId, voice);
 
 
 CREATE OR REPLACE FUNCTION insertPathTree() RETURNS trigger as
