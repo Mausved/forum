@@ -71,12 +71,11 @@ CREATE INDEX IF NOT EXISTS index_slug_thread on Thread using hash (slug);
 CREATE INDEX IF NOT EXISTS for_search_threads_on_forum ON Thread (forum, created);
 
 -- Post
-CREATE INDEX IF NOT EXISTS for_search_users_on_forum_posts ON Post (forum, author);
-CREATE INDEX IF NOT EXISTS for_flat_search ON Post (thread, id);
-CREATE INDEX IF NOT EXISTS for_tree_search ON Post (thread, pathTree);
-CREATE INDEX IF NOT EXISTS for_parent_tree_search ON Post ((pathTree[1]), pathTree);
-CREATE INDEX IF NOT EXISTS post_id_hash ON Post using hash (id);
-CREATE INDEX IF NOT EXISTS post_thread_hash ON Post using hash (thread);
+CREATE INDEX IF NOT EXISTS index_author_post on Post using hash (author);
+CREATE INDEX IF NOT EXISTS index_forum_post on Post using hash (forum);
+CREATE INDEX IF NOT EXISTS index_parent_post on Post (parent);
+CREATE INDEX IF NOT EXISTS thread_parentTree_post on post (thread, pathtree);
+CREATE INDEX IF NOT EXISTS first_parent_post on post ((pathtree[1]), pathtree);
 
 -- Vote
 CREATE INDEX IF NOT EXISTS search_user_vote ON Vote (nickname, threadId, voice);
