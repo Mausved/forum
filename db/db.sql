@@ -63,22 +63,22 @@ CREATE UNLOGGED TABLE Vote
 );
 
 -- Users
-CREATE INDEX IF NOT EXISTS  user_nickname_email ON Users (nickname, email);
+CREATE INDEX IF NOT EXISTS  index_user_nickname_email ON Users (nickname, email);
 
 -- Threads
 CREATE INDEX IF NOT EXISTS index_forum_thread on Thread using hash (forum);
 CREATE INDEX IF NOT EXISTS index_slug_thread on Thread using hash (slug);
-CREATE INDEX IF NOT EXISTS for_search_threads_on_forum ON Thread (forum, created);
+CREATE INDEX IF NOT EXISTS index_thread_forum_created ON Thread (forum, created);
 
 -- Post
 CREATE INDEX IF NOT EXISTS index_author_post on Post using hash (author);
 CREATE INDEX IF NOT EXISTS index_forum_post on Post using hash (forum);
 CREATE INDEX IF NOT EXISTS index_parent_post on Post (parent);
-CREATE INDEX IF NOT EXISTS thread_parentTree_post on post (thread, pathtree);
-CREATE INDEX IF NOT EXISTS first_parent_post on post ((pathtree[1]), pathtree);
+CREATE INDEX IF NOT EXISTS index_thread_pathTree_post on post (thread, pathtree);
+CREATE INDEX IF NOT EXISTS index_first_parent_post on post ((pathtree[1]), pathtree);
 
 -- Vote
-CREATE INDEX IF NOT EXISTS search_user_vote ON Vote (nickname, threadId, voice);
+CREATE INDEX IF NOT EXISTS index_search_user_vote ON Vote (nickname, threadId, voice);
 
 
 CREATE OR REPLACE FUNCTION insertPathTree() RETURNS trigger as
