@@ -54,7 +54,7 @@ CREATE UNLOGGED TABLE Post
     forum     citext             NOT NULL REFERENCES Forum (slug) ON DELETE CASCADE,
     thread    int                NOT NULL,
     created   timestamptz                 DEFAULT now(),
-    pathTree  bigint[]                    default array []::bigint[],
+    pathTree  int[]                    default array []::int[],
     CONSTRAINT PostPk PRIMARY KEY (id)
 );
 
@@ -103,7 +103,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS index_unique_vote on Vote (threadId, nickname)
 CREATE OR REPLACE FUNCTION insertPathTree() RETURNS trigger as
 $insertPathTree$
 Declare
-    parent_path BIGINT[];
+    parent_path int[];
 begin
     if (new.parent = 0) then
         new.pathtree := array_append(new.pathtree, new.id);
@@ -150,5 +150,6 @@ CREATE TRIGGER insertPathTreeTrigger
 EXECUTE Function insertPathTree();
 
 VACUUM ANALYZE;
+
 
 
