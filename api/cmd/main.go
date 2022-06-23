@@ -26,7 +26,7 @@ func main() {
 		e.Logger.Fatalf("error to init logrus:", err)
 	}
 
-	e.Use(logs.ColoredLogMiddleware)
+	//e.Use(logs.ColoredLogMiddleware)
 	//e.Use(logs.JsonLogMiddleware)
 	//e.Logger.SetOutput(logs.Logrus.Writer())
 

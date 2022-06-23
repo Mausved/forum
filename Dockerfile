@@ -12,7 +12,7 @@ RUN go install github.com/swaggo/swag/cmd/swag@latest
 RUN swag init -g api/cmd/main.go
 RUN go build -ldflags "-w -s" -o ./tmp/api api/cmd/main.go
 
-FROM ubuntu
+FROM ubuntu:20.04
 
 RUN apt-get -y update && apt-get install -y tzdata
 RUN ln -snf /usr/share/zoneinfo/Russia/Moscow /etc/localtime && echo Russia/Moscow > /etc/timezone
@@ -39,7 +39,7 @@ COPY ./db/db.sql ./db.sql
 COPY --from=builder /var/www/service/tmp/api .
 
 EXPOSE 5000
-EXPOSE 5432
+#EXPOSE 5432
 ENV PGPASSWORD admin
 ENV dsn user=root password=$PGPASSWORD dbname=forum_db host=localhost port=5432 sslmode=disable
 ENV port "5000"
