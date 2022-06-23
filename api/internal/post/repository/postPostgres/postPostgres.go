@@ -97,7 +97,8 @@ func (repo PostRepo) CreatePosts(posts []domain.Post, forum string, threadId int
 
 	result := make([]domain.Post, elements)
 
-	insertToForumUsersQuery := `INSERT INTO ForumUsers (nickname, fullname, about, email, forum) values;`
+	fmt.Println("here===")
+	insertToForumUsersQuery := `INSERT INTO ForumUsers (nickname, fullname, about, email, forum) values`
 	paramNumber := 1
 	forumUsersFields := 5
 	var forumUsersParams []interface{}
