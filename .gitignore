@@ -1,0 +1,10 @@
+/target/
+
+# Idea project files
+.idea/
+
+# Output
+tech-db-forum*
+report*.html
+perf.data*
+technopark-dbms-forum
